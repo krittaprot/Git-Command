@@ -15,6 +15,12 @@ Think of branches as parallel universes of your code where you can:
 - Collaborate on different parts of the project
 - Keep stable and experimental code separate
 
+```
+main branch:     A---B---C---F---G
+                  \         /
+feature branch:    D---E---/
+```
+
 ## 🆕 Creating and Switching Branches
 
 ### Basic Branch Commands
@@ -30,6 +36,10 @@ git checkout -b experiment-random-forest
 
 # Modern way (Git 2.23+)
 git switch -c experiment-xgboost
+
+# Switch back to main
+git checkout main
+git switch main  # modern way
 ```
 
 ### Branch Naming for ML Projects
@@ -55,7 +65,7 @@ git checkout -b research/literature-review
 
 ### Viewing Branches
 ```bash
-# List local branches
+# List local branches (* shows current branch)
 git branch
 
 # List all branches (local and remote)
@@ -66,423 +76,372 @@ git branch -r
 
 # Show last commit on each branch
 git branch -v
+
+# Show current branch
+git branch --show-current
 ```
 
 ### Branch Information
 ```bash
-# Show current branch
-git branch --show-current
-
 # Show branches merged into current branch
 git branch --merged
 
 # Show branches not yet merged
 git branch --no-merged
+
+# Show branch tracking information
+git branch -vv
 ```
 
-## 🧪 ML Experiment Workflow with Branches
+## 🔄 Complete Branching Workflow
 
-Let's walk through a complete ML experiment using branches:
+### Scenario: Adding a New ML Model
 
-### 1. Start from Main Branch
+#### Step 1: Start from Main
 ```bash
 # Make sure you're on main and up to date
 git checkout main
 git pull origin main
+
+# Check status
+git status
+# Should show: "On branch main, nothing to commit, working tree clean"
 ```
 
-### 2. Create Experiment Branch
+#### Step 2: Create Feature Branch
 ```bash
-# Create branch for neural network experiment
-git checkout -b experiment/neural-network
+# Create and switch to new branch
+git checkout -b feature/random-forest-model
 
 # Verify you're on the new branch
 git branch --show-current
+# Should show: feature/random-forest-model
 ```
 
-### 3. Implement Your Experiment
+#### Step 3: Work on Your Feature
 ```bash
-# Create neural network model
-cat > src/models/neural_network.py << 'EOF'
-import tensorflow as tf
-from tensorflow.keras import layers, models
-import numpy as np
+# Create your new model file
+echo "# Random Forest Model Implementation" > models/random_forest.py
 
-class NeuralNetworkModel:
-    def __init__(self, input_dim, hidden_units=[64, 32], output_dim=1):
-        self.input_dim = input_dim
-        self.hidden_units = hidden_units
-        self.output_dim = output_dim
-        self.model = None
-        
-    def build_model(self):
-        """Build the neural network architecture."""
-        self.model = models.Sequential()
-        
-        # Input layer
-        self.model.add(layers.Dense(
-            self.hidden_units[0], 
-            activation='relu', 
-            input_shape=(self.input_dim,)
-        ))
-        
-        # Hidden layers
-        for units in self.hidden_units[1:]:
-            self.model.add(layers.Dense(units, activation='relu'))
-            self.model.add(layers.Dropout(0.2))
-        
-        # Output layer
-        self.model.add(layers.Dense(self.output_dim, activation='sigmoid'))
-        
-        # Compile model
-        self.model.compile(
-            optimizer='adam',
-            loss='binary_crossentropy',
-            metrics=['accuracy']
+# Add some actual code
+cat >> models/random_forest.py << 'EOF'
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, classification_report
+
+class RandomForestModel:
+    def __init__(self, n_estimators=100, random_state=42):
+        self.model = RandomForestClassifier(
+            n_estimators=n_estimators,
+            random_state=random_state
         )
-        
-        return self.model
+        self.is_trained = False
     
-    def train(self, X_train, y_train, X_val, y_val, epochs=100):
-        """Train the model."""
-        if self.model is None:
-            self.build_model()
-            
-        history = self.model.fit(
-            X_train, y_train,
-            validation_data=(X_val, y_val),
-            epochs=epochs,
-            batch_size=32,
-            verbose=1
-        )
-        
-        return history
+    def train(self, X_train, y_train):
+        """Train the Random Forest model."""
+        self.model.fit(X_train, y_train)
+        self.is_trained = True
+        return self
     
-    def predict(self, X):
+    def predict(self, X_test):
         """Make predictions."""
-        return self.model.predict(X)
+        if not self.is_trained:
+            raise ValueError("Model must be trained before making predictions")
+        return self.model.predict(X_test)
+    
+    def evaluate(self, X_test, y_test):
+        """Evaluate model performance."""
+        predictions = self.predict(X_test)
+        accuracy = accuracy_score(y_test, predictions)
+        report = classification_report(y_test, predictions)
+        return accuracy, report
 EOF
 ```
 
-### 4. Commit Your Experiment
+#### Step 4: Commit Your Changes
 ```bash
-# Add and commit the new model
-git add src/models/neural_network.py
-git commit -m "Add neural network model implementation
+# Check what changed
+git status
+git diff
 
-- Implement flexible NN architecture
-- Add dropout for regularization
-- Include training and prediction methods
-- Use binary crossentropy for classification"
+# Add and commit
+git add models/random_forest.py
+git commit -m "Add Random Forest model implementation
+
+- Implement RandomForestModel class
+- Add training, prediction, and evaluation methods
+- Include proper error handling for untrained model"
 ```
 
-### 5. Create Experiment Notebook
+#### Step 5: Push Your Branch
 ```bash
-# Create experiment notebook
-cat > notebooks/neural_network_experiment.ipynb << 'EOF'
-{
- "cells": [
-  {
-   "cell_type": "markdown",
-   "metadata": {},
-   "source": [
-    "# Neural Network Experiment\n",
-    "\n",
-    "Testing neural network performance on our dataset."
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import sys\n",
-    "sys.path.append('../src')\n",
-    "\n",
-    "from models.neural_network import NeuralNetworkModel\n",
-    "import pandas as pd\n",
-    "from sklearn.model_selection import train_test_split"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "# Load and prepare data\n",
-    "# TODO: Replace with actual data loading\n",
-    "# df = pd.read_csv('../data/processed/clean_dataset.csv')\n",
-    "print('Neural network experiment ready!')"
-   ]
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3",
-   "language": "python",
-   "name": "python3"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 4
-}
-EOF
+# Push the branch to remote repository
+git push -u origin feature/random-forest-model
 
-# Commit the notebook
-git add notebooks/neural_network_experiment.ipynb
-git commit -m "Add neural network experiment notebook"
+# The -u flag sets up tracking so future pushes can just use 'git push'
 ```
 
-## 🔄 Merging Branches
+## 🔀 Merging Branches
 
-### Types of Merges
-
-#### 1. Fast-Forward Merge (Simple)
-When main branch hasn't changed since you created your branch:
-
+### Method 1: Merge (Creates Merge Commit)
 ```bash
-# Switch to main
+# Switch back to main
 git checkout main
 
-# Merge your experiment branch
-git merge experiment/neural-network
-```
-
-#### 2. Three-Way Merge (More Common)
-When both branches have new commits:
-
-```bash
-# Switch to main
-git checkout main
-
-# Pull latest changes
+# Make sure main is up to date
 git pull origin main
 
-# Merge with commit message
-git merge experiment/neural-network -m "Merge neural network experiment
+# Merge your feature branch
+git merge feature/random-forest-model
 
-- Add NeuralNetworkModel class
-- Include experiment notebook
-- Ready for testing with real data"
+# Push the merged changes
+git push origin main
 ```
 
-### Merge Strategies
+### Method 2: Rebase (Linear History)
 ```bash
-# Create merge commit (default)
-git merge experiment/neural-network
+# On your feature branch
+git checkout feature/random-forest-model
 
-# Fast-forward only (fails if not possible)
-git merge --ff-only experiment/neural-network
+# Rebase onto main (replays your commits on top of main)
+git rebase main
 
-# Always create merge commit
-git merge --no-ff experiment/neural-network
-
-# Squash all commits into one
-git merge --squash experiment/neural-network
-```
-
-## ⚔️ Handling Merge Conflicts
-
-Conflicts happen when both branches modify the same lines of code.
-
-### Example Conflict Scenario
-```bash
-# On main branch, someone updated requirements.txt
-echo "scikit-learn==1.1.0" >> requirements.txt
-git add requirements.txt
-git commit -m "Update scikit-learn version"
-
-# On your branch, you also updated requirements.txt
-git checkout experiment/neural-network
-echo "tensorflow==2.8.0" >> requirements.txt
-git add requirements.txt
-git commit -m "Add tensorflow dependency"
-
-# Now try to merge - conflict!
+# Switch to main and merge (fast-forward)
 git checkout main
-git merge experiment/neural-network
+git merge feature/random-forest-model
+
+# Push
+git push origin main
+```
+
+### Method 3: Squash Merge (Combines all commits into one)
+```bash
+# On main branch
+git checkout main
+git pull origin main
+
+# Squash merge (combines all feature commits into one)
+git merge --squash feature/random-forest-model
+
+# This stages all changes but doesn't commit
+git commit -m "Add Random Forest model with full implementation"
+
+# Push
+git push origin main
+```
+
+## 🛠️ Handling Merge Conflicts
+
+### When Conflicts Occur
+```bash
+# During merge, if conflicts occur:
+git merge feature/data-preprocessing
+# Auto-merging data/preprocessing.py
+# CONFLICT (content): Merge conflict in data/preprocessing.py
+# Automatic merge failed; fix conflicts and then commit the result.
 ```
 
 ### Resolving Conflicts
+1. **Check conflict status:**
 ```bash
-# Git will show conflict markers in the file:
-# <<<<<<< HEAD
-# scikit-learn==1.1.0
-# =======
-# tensorflow==2.8.0
-# >>>>>>> experiment/neural-network
-
-# Edit the file to resolve conflicts
-# Keep both dependencies:
-scikit-learn==1.1.0
-tensorflow==2.8.0
-
-# Stage the resolved file
-git add requirements.txt
-
-# Complete the merge
-git commit -m "Merge neural network experiment with updated dependencies"
-```
-
-### Conflict Resolution Tools
-```bash
-# Use merge tool
-git mergetool
-
-# Abort merge if needed
-git merge --abort
-
-# Show conflicts
 git status
+# Shows files with conflicts
 ```
 
-## 🧹 Branch Cleanup
+2. **Open conflicted files and look for conflict markers:**
+```python
+# In your file, you'll see:
+<<<<<<< HEAD
+# Code from main branch
+def preprocess_data(df):
+    return df.dropna()
+=======
+# Code from feature branch  
+def preprocess_data(df):
+    return df.fillna(0)
+>>>>>>> feature/data-preprocessing
+```
 
-### Deleting Branches
+3. **Resolve the conflict by editing the file:**
+```python
+# Choose one version or combine them:
+def preprocess_data(df):
+    # Use fillna for numeric columns, dropna for others
+    numeric_cols = df.select_dtypes(include=[np.number]).columns
+    df[numeric_cols] = df[numeric_cols].fillna(0)
+    return df.dropna()
+```
+
+4. **Mark as resolved and commit:**
 ```bash
-# Delete merged branch (safe)
-git branch -d experiment/neural-network
+# Add the resolved file
+git add data/preprocessing.py
 
-# Force delete branch (even if not merged)
-git branch -D experiment/failed-attempt
+# Commit the merge
+git commit -m "Merge feature/data-preprocessing
+
+Resolved conflict in preprocessing function by combining
+both fillna and dropna approaches"
+```
+
+## 🧹 Cleaning Up Branches
+
+### Delete Branches After Merging
+```bash
+# Delete local branch (safe - only works if merged)
+git branch -d feature/random-forest-model
+
+# Force delete local branch (use with caution)
+git branch -D feature/random-forest-model
 
 # Delete remote branch
-git push origin --delete experiment/neural-network
+git push origin --delete feature/random-forest-model
 ```
 
-### Pruning Remote Branches
+### List and Clean Old Branches
 ```bash
-# Remove references to deleted remote branches
+# See which branches are merged
+git branch --merged
+
+# Clean up remote tracking branches that no longer exist
 git remote prune origin
 
-# Or during fetch
-git fetch --prune
+# Interactive cleanup
+git branch --merged | grep -v "main\|master" | xargs -n 1 git branch -d
 ```
 
-## 🚀 ML Branching Strategies
+## 🎯 ML-Specific Branching Strategies
 
-### 1. Feature Branch Strategy
+### 1. Experiment Branches
 ```bash
-# Main branch for stable code
-main
-
-# Feature branches for new capabilities
-feature/data-pipeline
-feature/model-evaluation
-feature/hyperparameter-tuning
+# For each ML experiment
+git checkout -b experiment/lstm-attention-model
+git checkout -b experiment/hyperparameter-search-v2
+git checkout -b experiment/data-augmentation-test
 ```
 
-### 2. Experiment Branch Strategy
+### 2. Model Development Workflow
 ```bash
-# Main branch for production code
-main
+# Start experiment
+git checkout -b experiment/new-architecture
 
-# Experiment branches for different approaches
-experiment/baseline-model
-experiment/deep-learning
-experiment/ensemble-methods
-experiment/feature-engineering
+# Work on model, commit frequently
+git add model.py
+git commit -m "Initial model structure"
+
+git add training.py  
+git commit -m "Add training loop"
+
+git add evaluation.py
+git commit -m "Add evaluation metrics"
+
+# If experiment succeeds, merge to main
+git checkout main
+git merge experiment/new-architecture
+
+# If experiment fails, just delete the branch
+git branch -D experiment/new-architecture
 ```
 
-### 3. Git Flow for ML
+### 3. Collaborative ML Workflow
 ```bash
-# Production ready code
-main
+# Team member 1: Data preprocessing
+git checkout -b feature/data-pipeline
 
-# Integration branch
-develop
+# Team member 2: Model development  
+git checkout -b feature/model-architecture
 
-# Feature branches
-feature/new-algorithm
-feature/data-preprocessing
+# Team member 3: Evaluation metrics
+git checkout -b feature/evaluation-suite
 
-# Release branches
-release/v1.0
-release/v2.0
-
-# Hotfix branches
-hotfix/critical-bug
+# Each person works independently, then merges back
 ```
 
-## 📊 Comparing Branches
+## 🚨 Common Branching Mistakes to Avoid
 
-### Diff Between Branches
+### 1. Working Directly on Main
 ```bash
-# Compare two branches
-git diff main..experiment/neural-network
+# ❌ Don't do this
+git checkout main
+# ... make changes directly ...
+git commit -m "Quick fix"
 
-# Show only file names
-git diff --name-only main..experiment/neural-network
-
-# Show statistics
-git diff --stat main..experiment/neural-network
+# ✅ Do this instead
+git checkout -b fix/quick-issue
+# ... make changes ...
+git commit -m "Fix issue"
+git checkout main
+git merge fix/quick-issue
 ```
 
-### Log Differences
+### 2. Not Keeping Main Up to Date
 ```bash
-# Show commits in experiment branch not in main
-git log main..experiment/neural-network
+# ❌ Creating branch from outdated main
+git checkout main
+# (main is 5 commits behind)
+git checkout -b new-feature
 
-# Show commits in both branches
-git log main...experiment/neural-network
+# ✅ Always update main first
+git checkout main
+git pull origin main
+git checkout -b new-feature
 ```
 
-## 🎯 Best Practices for ML Branches
-
-### Branch Naming Conventions
-- Use descriptive names: `experiment/lstm-sentiment-analysis`
-- Include ticket numbers: `feature/JIRA-123-data-pipeline`
-- Use consistent prefixes: `experiment/`, `feature/`, `fix/`
-
-### When to Branch
-- ✅ New model experiments
-- ✅ Feature engineering attempts
-- ✅ Hyperparameter tuning sessions
-- ✅ Algorithm comparisons
-- ✅ Bug fixes
-
-### When to Merge
-- ✅ Experiment shows promising results
-- ✅ Feature is complete and tested
-- ✅ Code review is approved
-- ✅ All tests pass
-
-### Branch Hygiene
-- Keep branches focused on single experiments
-- Merge or delete branches regularly
-- Don't let branches live too long
-- Rebase before merging to keep history clean
-
-## 🔄 Advanced: Rebasing
-
-Rebasing rewrites history to create a cleaner timeline:
-
+### 3. Large, Long-Running Branches
 ```bash
-# Rebase your branch onto latest main
-git checkout experiment/neural-network
-git rebase main
+# ❌ One huge branch with everything
+git checkout -b massive-refactor
+# ... 50 commits later ...
 
-# Interactive rebase to clean up commits
-git rebase -i HEAD~3
+# ✅ Break into smaller branches
+git checkout -b refactor/data-loading
+git checkout -b refactor/model-training  
+git checkout -b refactor/evaluation
 ```
 
-**Warning**: Only rebase branches that haven't been shared!
+## 📊 Visualizing Branch History
 
-## 📝 Key Takeaways
+### Useful Commands for Understanding History
+```bash
+# Pretty graph of commits
+git log --oneline --graph --all
 
-1. Branches enable parallel development and experimentation
-2. Use descriptive branch names with consistent conventions
-3. Merge strategies depend on your workflow needs
-4. Resolve conflicts carefully, especially in data and config files
-5. Clean up branches regularly to avoid clutter
-6. ML projects benefit from experiment-focused branching
+# See branch relationships
+git show-branch
 
-## 🚀 Next Steps
+# Detailed history with branches
+git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --all
+```
 
-In the next section, we'll explore how Git integrates with ML workflows, including handling notebooks, data versioning, and experiment tracking.
+## 🎯 Quick Reference
 
----
+### Essential Branch Commands
+```bash
+# Create and switch to branch
+git checkout -b branch-name
 
-**Practice Challenge**: Create multiple experiment branches, implement different approaches to the same problem, and practice merging them back. Try creating a merge conflict intentionally and resolve it. 
+# Switch branches
+git checkout main
+git switch branch-name
+
+# See all branches
+git branch -a
+
+# Merge branch into current
+git merge branch-name
+
+# Delete branch
+git branch -d branch-name
+
+# Push branch to remote
+git push -u origin branch-name
+```
+
+### Typical ML Workflow
+1. `git checkout main && git pull` - Start from updated main
+2. `git checkout -b experiment/new-idea` - Create experiment branch
+3. Work, add, commit changes
+4. `git push -u origin experiment/new-idea` - Push branch
+5. If successful: merge to main
+6. If unsuccessful: delete branch
+
+Remember: Branches are cheap and fast in Git. Use them liberally for experiments! 

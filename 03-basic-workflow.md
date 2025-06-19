@@ -87,6 +87,17 @@ git commit
 
 ## 🚀 Pushing Changes
 
+### Important Concept: Git Pushes Commits, Not Files
+**Key Understanding**: Git doesn't push individual files. Instead, it pushes commits that contain changes to files.
+
+```
+Your Workflow:
+1. Edit files
+2. git add (stage specific files)
+3. git commit (create a commit with those files)  
+4. git push (send the commit to remote repository)
+```
+
 ### Basic Push
 ```bash
 # Push to remote repository
@@ -97,6 +108,48 @@ git push -u origin main
 
 # Push specific branch
 git push origin feature-branch
+```
+
+### Working with Specific Files - The Right Way
+```bash
+# Scenario: You only want to push changes to one file
+
+# 1. Add only the file you want to include
+git add models/neural_network.py
+
+# 2. Commit just that file
+git commit -m "Update neural network architecture"
+
+# 3. Push the commit (which contains your file changes)
+git push
+
+# The commit goes to remote, bringing your file changes with it
+```
+
+### Multiple Files Example
+```bash
+# Add specific files you want to push
+git add config.yaml requirements.txt models/
+
+# Commit them together
+git commit -m "Update configuration, dependencies, and models"
+
+# Push the commit
+git push
+
+# All three changes are now on the remote repository
+```
+
+### What Happens During Push
+```bash
+# Before push - check what will be pushed
+git log origin/main..HEAD
+
+# This shows commits that exist locally but not on remote
+# Each commit contains the file changes you made
+
+# After push, remote repository has your commits
+# and therefore has your file changes
 ```
 
 ### Force Push (Use with caution!)
